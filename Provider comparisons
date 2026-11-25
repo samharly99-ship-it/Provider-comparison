@@ -1,0 +1,3326 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقارنة التعرفات الطبية | Lebanese Medical Tariff Comparator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .font-en {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom subtle scrollbar for wide tables */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .highest-cell {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1.5px solid #f59e0b !important;
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span class="bg-emerald-500 text-slate-950 font-bold px-2.5 py-0.5 rounded-md text-xs font-en">TARIFF ENGINE</span>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight">نظام مقارنة التعرفات الطبية والجهات الضامنة</h1>
+                </div>
+                <p class="text-slate-400 text-xs sm:text-sm mt-0.5 font-en">
+                    Rasool (مستشفى الرسول الأعظم) vs. الرعاية الصحية vs. الضمان الاجتماعي vs. تعاونية موظفي الدولة
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                    <span>+</span>
+                    <span>إضافة خدمة / Add Row</span>
+                </button>
+                <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span>تصدير CSV</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
+
+        <!-- KPI Summary Strip -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-container">
+            <!-- Dynamically populated -->
+        </section>
+
+        <!-- Interactive K-Multiplier Control Panel (Gastroscopy & Colonoscopy) -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-gradient-to-l from-indigo-950 via-slate-900 to-slate-900 text-white px-5 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-400 text-slate-950 text-xs font-extrabold px-2 py-0.5 rounded font-en">K × UNITS</span>
+                        <h2 class="text-base sm:text-lg font-bold">حاسبة معامل الـ K للتنظير (Gastroscopy & Colonoscopy)</h2>
+                    </div>
+                    <p class="text-slate-300 text-xs mt-1">
+                        أدخل عدد وحدات <span class="font-en font-semibold text-amber-300">K</span> (مثلاً <span class="font-en font-bold">30</span>) ليتم ضربها بقيمة <span class="font-en font-bold">K</span> الخاصة بكل جهة ضامنة ومقارنتها مع السقف الثابت.
+                    </p>
+                </div>
+
+                <!-- Mode Switcher -->
+                <div class="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700 self-start lg:self-auto">
+                    <button id="mode-k-btn" onclick="setEndoscopyMode('k_calc')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-400 text-slate-950 shadow">
+                        احتساب حسب (K × العدد)
+                    </button>
+                    <button id="mode-fixed-btn" onclick="setEndoscopyMode('fixed')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+                        السقف المقطوع الثابت
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center bg-slate-50/70">
+                <!-- Payer K Rates Reference -->
+                <div class="lg:col-span-5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                        <div class="text-[11px] text-slate-500 font-semibold">مستشفى الرسول (Rasool)</div>
+                        <div class="text-base font-extrabold text-slate-900 font-en mt-0.5">1 K = $4.00</div>
+                    </div>
+                    <div class="bg-amber-50/60 p-3 rounded-xl border border-amber-200">
+                        <div class="text-[11px] text-amber-800 font-semibold">الرعاية الصحية</div>
+                        <div class="text-base font-extrabold text-amber-950 font-en mt-0.5">1 K = $4.00</div>
+                    </div>
+                    <div class="bg-sky-50/60 p-3 rounded-xl border border-sky-200">
+                        <div class="text-[11px] text-sky-800 font-semibold">الضمان الاجتماعي</div>
+                        <div class="text-base font-extrabold text-sky-950 font-en mt-0.5">1 K = $4.00</div>
+                    </div>
+                    <div class="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200">
+                        <div class="text-[11px] text-emerald-800 font-semibold">تعاونية موظفي الدولة</div>
+                        <div class="text-xs sm:text-sm font-extrabold text-emerald-950 font-en mt-0.5">
+                            $5 <span class="font-normal text-[11px] font-sans">(داخل)</span> / $2 <span class="font-normal text-[11px] font-sans">(خارج)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive K Inputs for Gastroscopy & Colonoscopy -->
+                <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Gastroscopy K input -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="gastro-k-input" class="text-xs font-bold text-slate-800">
+                                تنظير المعدة <span class="font-en text-indigo-600">(Gastroscopy K)</span>
+                            </label>
+                            <span class="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded font-en" id="gastro-preview-tag">30 × K</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="gastro-k-input" value="30" min="1" max="500" step="1"
+                                oninput="updateKValues()"
+                                class="w-full font-en text-lg font-extrabold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-slate-500 font-en">K</span>
+                        </div>
+                        <div class="mt-2.5 text-[11px] text-slate-600 flex flex-wrap gap-x-3 gap-y-1 font-en" id="gastro-live-breakdown">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Colonoscopy K input -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="colono-k-input" class="text-xs font-bold text-slate-800">
+                                تنظير القولون <span class="font-en text-indigo-600">(Colonoscopy K)</span>
+                            </label>
+                            <span class="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded font-en" id="colono-preview-tag">30 × K</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="colono-k-input" value="30" min="1" max="500" step="1"
+                                oninput="updateKValues()"
+                                class="w-full font-en text-lg font-extrabold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-slate-500 font-en">K</span>
+                        </div>
+                        <div class="mt-2.5 text-[11px] text-slate-600 flex flex-wrap gap-x-3 gap-y-1 font-en" id="colono-live-breakdown">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters & Comparison Baseline Controls -->
+        <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <!-- Prominent Multi-Select Service Picker -->
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5 rounded font-en">SERVICES</span>
+                        <label class="text-xs sm:text-sm font-bold text-slate-800">اختيار الخدمات للمقارنة <span class="font-en text-slate-500 font-semibold">(Select Services)</span></label>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                        <button type="button" onclick="selectAllServices()" class="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">
+                            الكل (All)
+                        </button>
+                        <button type="button" onclick="selectComparableOnly()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold hover:bg-emerald-100 transition">
+                            المشتركة فقط (2+ Payers)
+                        </button>
+                        <button type="button" onclick="clearSelectedServices()" class="px-2.5 py-1 rounded-lg bg-white text-rose-700 border border-rose-200 font-semibold hover:bg-rose-50 transition">
+                            مسح التحديد (Clear)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropdown Trigger + Searchable Checklist Popover -->
+                <div class="relative" id="service-picker-wrapper">
+                    <button type="button" onclick="toggleServiceDropdown()"
+                        class="w-full bg-white border border-slate-300 hover:border-slate-400 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between shadow-2xs transition focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        <div class="flex items-center gap-2 truncate">
+                            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                            <span id="service-picker-summary" class="font-bold text-slate-800 truncate">جميع الخدمات محددة (All Services)</span>
+                        </div>
+                        <span class="text-xs font-en font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md shrink-0" id="service-picker-count">0 / 0</span>
+                    </button>
+
+                    <!-- Popover Menu -->
+                    <div id="service-picker-popover" class="hidden absolute right-0 left-0 mt-1.5 bg-white rounded-2xl border border-slate-300 shadow-2xl z-40 overflow-hidden">
+                        <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="picker-search-input" oninput="renderServiceChecklist()"
+                                placeholder="ابحث داخل القائمة لاختيار خدمات محددة (مثال: MRI, Echo, سرير, EP, Stent)..."
+                                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900">
+                            <button type="button" onclick="toggleServiceDropdown()" class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold shrink-0">
+                                تم (Done)
+                            </button>
+                        </div>
+                        <div id="service-checklist-container" class="max-h-80 overflow-y-auto p-2 space-y-2 divide-y divide-slate-100">
+                            <!-- Grouped checkboxes rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Service Removable Chips (shown when a custom subset is active) -->
+                <div id="selected-chips-container" class="hidden flex-wrap gap-1.5 pt-1 max-h-24 overflow-y-auto"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                <!-- Search -->
+                <div class="lg:col-span-4">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">بحث سريع في الجدول (عربي / English)</label>
+                    <div class="relative">
+                        <input type="text" id="search-input" oninput="renderTable()" placeholder="مثال: MRI, سرير, Gastroscopy, Echo..."
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    </div>
+                </div>
+
+                <!-- Category Filter -->
+                <div class="lg:col-span-3">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تصنيف الخدمة (Category)</label>
+                    <select id="category-filter" onchange="renderTable()"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        <option value="ALL">جميع التصنيفات (All Categories)</option>
+                    </select>
+                </div>
+
+                <!-- Setting Filter -->
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نوع الاستشفاء</label>
+                    <select id="setting-filter" onchange="renderTable()"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        <option value="ALL">الكل (All)</option>
+                        <option value="Inpatient">داخل المستشفى (Inpatient)</option>
+                        <option value="Outpatient">خارجي (Outpatient)</option>
+                        <option value="General">عام / وحدات (General)</option>
+                    </select>
+                </div>
+
+                <!-- % Difference Baseline Selector -->
+                <div class="lg:col-span-3">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">مرجع احتساب فرق النسبة (% Diff)</label>
+                    <select id="diff-baseline" onchange="renderTable()"
+                        class="w-full bg-amber-50/70 border border-amber-300 text-amber-950 font-semibold rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="vs_lowest">مقارنة بالأدنى (vs. Lowest Price)</option>
+                        <option value="vs_highest">الفرق عن الأعلى (vs. Highest Price)</option>
+                        <option value="vs_rasool">مقارنة بالرسول (vs. Rasool Baseline)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quick Toggles & Legend -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
+                <div class="flex flex-wrap items-center gap-4">
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none font-semibold text-slate-700">
+                        <input type="checkbox" id="matched-only-toggle" onchange="renderTable()" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4">
+                        <span>إظهار الخدمات المشتركة بين جهتين أو أكثر فقط (Matched Only)</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none font-semibold text-slate-700">
+                        <input type="checkbox" id="highest-diff-sort" onchange="renderTable()" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4">
+                        <span>ترتيب حسب أعلى فرق نسبة مئوية (Sort by Highest % Spread)</span>
+                    </label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-lg">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span>الأعلى سعراً / سقفاً (Highest)</span>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Comparison Data Table -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="table-container overflow-x-auto">
+                <table class="w-full text-right border-collapse min-w-[980px]">
+                    <thead>
+                        <tr class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                            <th class="py-3.5 px-4 font-bold w-1/4">الخدمة الطبية / Service</th>
+                            <th class="py-3.5 px-3 font-bold text-center bg-slate-800 border-x border-slate-700">
+                                <div>مستشفى الرسول</div>
+                                <div class="text-[10px] text-slate-300 font-en font-normal">Rasool Tariff ($)</div>
+                            </th>
+                            <th class="py-3.5 px-3 font-bold text-center bg-amber-950/90 border-x border-slate-700">
+                                <div>الرعاية الصحية</div>
+                                <div class="text-[10px] text-amber-200 font-en font-normal">MOH / الرعاية</div>
+                            </th>
+                            <th class="py-3.5 px-3 font-bold text-center bg-sky-950/90 border-x border-slate-700">
+                                <div>الضمان الاجتماعي</div>
+                                <div class="text-[10px] text-sky-200 font-en font-normal">NSSF / الضمان</div>
+                            </th>
+                            <th class="py-3.5 px-3 font-bold text-center bg-emerald-950/90 border-x border-slate-700">
+                                <div>تعاونية موظفي الدولة</div>
+                                <div class="text-[10px] text-emerald-200 font-en font-normal">Coop / التعاونية</div>
+                            </th>
+                            <th class="py-3.5 px-3 font-bold text-center bg-slate-800">
+                                <div>الأعلى وفارق النسبة</div>
+                                <div class="text-[10px] text-amber-300 font-en font-normal">Highest & % Spread</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-tbody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Rendered via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-state" class="hidden py-12 text-center text-slate-500">
+                <p class="font-bold text-base">لا توجد خدمات مطابقة لخيارات البحث الحالية</p>
+                <p class="text-xs mt-1">حاول تغيير كلمات البحث أو إزالة الفلاتر.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Add Custom Service Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+                <h3 class="font-bold text-base">إضافة خدمة طبية للمقارنة</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="handleAddService(event)" class="p-5 space-y-3.5 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">اسم الخدمة (عربي)</label>
+                        <input type="text" id="new-ar" required placeholder="مثال: صورة صوتية للبطن" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Service Name (English)</label>
+                        <input type="text" id="new-en" required placeholder="e.g. Abdominal Ultrasound" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-en">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">التصنيف</label>
+                        <select id="new-cat" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+                            <option value="Consultations & Respiratory">Consultations & Respiratory</option>
+                            <option value="Hospital Beds & Multipliers">Hospital Beds & Multipliers</option>
+                            <option value="Imaging & Scans">Imaging & Scans</option>
+                            <option value="Endoscopy & Procedures">Endoscopy & Procedures</option>
+                            <option value="Cardiology & EP">Cardiology & EP</option>
+                            <option value="Ophthalmology & Specialty">Ophthalmology & Specialty</option>
+                            <option value="Implants & Medical Supplies">Implants & Medical Supplies</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">النوع (Setting)</label>
+                        <select id="new-setting" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+                            <option value="Outpatient">Outpatient (خارجي)</option>
+                            <option value="Inpatient">Inpatient (داخل المستشفى)</option>
+                            <option value="General">General (عام)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Rasool ($)</label>
+                        <input type="number" step="0.01" id="new-rasool" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 font-en">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-amber-800 mb-1">الرعاية ($)</label>
+                        <input type="number" step="0.01" id="new-reaya" placeholder="0" class="w-full border border-amber-300 rounded-lg px-2.5 py-1.5 font-en">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-sky-800 mb-1">الضمان ($)</label>
+                        <input type="number" step="0.01" id="new-daman" placeholder="0" class="w-full border border-sky-300 rounded-lg px-2.5 py-1.5 font-en">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-emerald-800 mb-1">التعاونية ($)</label>
+                        <input type="number" step="0.01" id="new-coop" placeholder="0" class="w-full border border-emerald-300 rounded-lg px-2.5 py-1.5 font-en">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800">حفظ وإضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Message Box -->
+    <div id="toast" class="fixed bottom-5 left-5 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50"></div>
+
+    <script>
+        // Payer K-rate constants extracted from tariff sheets
+        const K_RATES = {
+            rasool: 4,
+            reaya: 4,
+            daman: 4,
+            coop_inpatient: 5,
+            coop_outpatient: 2
+        };
+
+        // Current interactive state
+        let state = {
+            endoscopyMode: 'k_calc', // 'k_calc' or 'fixed'
+            gastroK: 30,
+            colonoK: 30,
+            selectedIds: new Set() // Populated with all service IDs on load
+        };
+
+        // Complete mapped tariff dataset across all 14 uploaded images
+        let servicesData = [
+            // =========================================================
+            // 1. CONSULTATIONS, SESSIONS & RESPIRATORY (المعاينات والجلسات والتنفس)
+            // =========================================================
+            {
+                id: 'gp-consult',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'معاينة صحة عامة',
+                en: 'General Practitioner Consultation',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 12, cov: '75%', note: '' },
+                daman: { price: 15, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'specialist-outpatient',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'طبيب إختصاص / معاينة أخصائي عيادات',
+                en: 'Specialist Consultation (Outpatient)',
+                rasool: { price: 15, note: '' },
+                reaya: { price: 15, cov: '75%', note: '' },
+                daman: { price: 22, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'inpatient-doctor-visit',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'معاينة طبيب للمرضى الداخليين',
+                en: 'Inpatient Doctor Visit',
+                rasool: { price: 20, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'er-resident-day',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'معاينة طبيب طوارئ مقيم / نهاراً',
+                en: 'ER Resident Doctor (Day)',
+                rasool: { price: 10, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'er-resident-night',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'معاينة طبيب طوارئ مقيم / ليلاً',
+                en: 'ER Resident Doctor (Night)',
+                rasool: { price: 12, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'er-specialist-day',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'معاينة طبيب أخصائي في الطوارئ نهاراً',
+                en: 'ER Specialist Doctor (Day)',
+                rasool: { price: 15, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'er-specialist-night',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'معاينة طبيب أخصائي في الطوارئ ليلاً',
+                en: 'ER Specialist Doctor (Night)',
+                rasool: { price: 20, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'er-room-file',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'أجرة طوارئ (غرفة + فتح ملف)',
+                en: 'ER Room + File Opening Fee',
+                rasool: { price: 15, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'clinic-procedure-fee',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'بدل عيادات عند إجراء عمل طبي (K العيادات)',
+                en: 'Outpatient Clinic Procedure Fee (K Clinics)',
+                rasool: { price: 3, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'psych-consult',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'طبيب نفساني / معاينة معالج نفسي',
+                en: 'Psychiatrist / Psychologist Consultation',
+                rasool: { price: 15, note: 'معاينة معالج نفسي' },
+                reaya: { price: 18, cov: '75%', note: '' },
+                daman: { price: 22, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'audiometry',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'تخطيط أذن (Audiometry / OAE / Tympanogram)',
+                en: 'Audiometry / OAE / Tympanogram',
+                rasool: { price: null, status: 'مدرج (السعر مقصوص)' },
+                reaya: { price: 12, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 5, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'hearing-aid',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'سماعة خارجية',
+                en: 'External Hearing Aid',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: 'حسب النوع', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: 225, cov: '75%', note: 'موافقة + مرة كل 5 سنوات' }
+            },
+            {
+                id: 'cpap-bipap',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'شراء جهاز CPAP / BIPAP',
+                en: 'CPAP / BIPAP Device Purchase',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 787.5, cov: '75%', note: '575 / 1000 (موافقة مسبقة)' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 225, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'bipap-rental',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'استئجار BIPAP',
+                en: 'BIPAP Rental',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 17, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'oxygen-gen-buy',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'شراء مولد أوكسيجين',
+                en: 'Oxygen Concentrator Purchase',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 550, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 225, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'oxygen-gen-rent',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'استئجار مولد أوكسيجين',
+                en: 'Oxygen Concentrator Rental',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 17, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'ventilator-rent-out',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'استئجار Ventilator (خارجي)',
+                en: 'Ventilator Rental (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 67, cov: '75%', note: '' }
+            },
+            {
+                id: 'respirator-day-in',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'جهاز تنفس اصطناعي باليوم (Respirator / day)',
+                en: 'Respirator / Ventilator (Inpatient Per Day)',
+                rasool: { price: 18, note: '' },
+                reaya: { price: 18, cov: '90%', note: '' },
+                daman: { price: 22, cov: '90%', note: '' },
+                coop: { price: 20, cov: '90%', note: '' }
+            },
+            {
+                id: 'oxygen-hour',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'أوكسيجين O2 بالساعة',
+                en: 'Oxygen O2 (Per Hour)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-' },
+                daman: { price: 1.1, cov: '90%', note: '' },
+                coop: { price: 1, cov: '90%', note: '' }
+            },
+            {
+                id: 'oxygen-high-flow',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'أوكسيجين عالي التدفق (Oxygen High Flow)',
+                en: 'Oxygen High Flow',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-' },
+                daman: { price: 1.1, cov: '90%', note: '' },
+                coop: { price: 2, cov: '90%', note: '' }
+            },
+            {
+                id: 'spirometry',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'فحص وظائف الرئة (Spirometry)',
+                en: 'Spirometry',
+                rasool: { price: 30, note: '' },
+                reaya: { price: 30, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 15, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'functional-exploration',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'استكشاف وظيفي (Functional Exploration)',
+                en: 'Functional Exploration',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'polysomnography',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'دراسة النوم (Polysomnography)',
+                en: 'Polysomnography (Sleep Study)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 67, cov: '75%', note: '' }
+            },
+            {
+                id: 'physio-outpatient',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'جلسات العلاج الفيزيائي (خارجي)',
+                en: 'Physiotherapy Session (Outpatient)',
+                rasool: { price: 10, note: '' },
+                reaya: { price: 10, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 10, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 7, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'physio-inpatient',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'جلسة علاج فيزيائي (داخل المستشفى)',
+                en: 'Physiotherapy Session (Inpatient)',
+                rasool: { price: 10, note: '' },
+                reaya: { price: 10, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 10, cov: '90%', note: '' },
+                coop: { price: 7, cov: '90%', note: '' }
+            },
+            {
+                id: 'medical-corset',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'مشد طبي',
+                en: 'Medical Corset / Brace',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'speech-therapy',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'جلسات النطق / جلسة علاج نطق',
+                en: 'Speech Therapy Session',
+                rasool: { price: 15, note: '' },
+                reaya: { price: 12, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 7, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'uv-therapy',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Outpatient',
+                ar: 'جلسات أشعة فوق بنفسجية',
+                en: 'Ultraviolet (UV) Light Therapy Sessions',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 7, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'yellow-light-therapy',
+                category: 'Consultations & Respiratory',
+                categoryAr: 'المعاينات والجلسات والتنفس',
+                setting: 'Inpatient',
+                ar: 'علاج بالضوء الأصفر (يرقان حديثي الولادة)',
+                en: 'Phototherapy / Yellow Light Treatment',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 7, cov: '90%', note: '' }
+            },
+
+            // =========================================================
+            // 2. HOSPITAL BEDS, ROOMS & MULTIPLIERS (الأسرة والغرف والمعاملات)
+            // =========================================================
+            {
+                id: 'bed-standard',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير إقامة عادية',
+                en: 'Standard Hospital Bed',
+                rasool: { price: 52, note: '' },
+                reaya: { price: 52, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 62, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 76, cov: '90%', note: '' }
+            },
+            {
+                id: 'bed-first-class',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير درجة أولى',
+                en: 'First Class Hospital Bed',
+                rasool: { price: 78, note: 'درجة عادية × 1.5 (موافقة الإدارة)' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'bed-icu',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير عناية فائقة (CSU-ICU)',
+                en: 'Intensive Care Unit Bed (CSU-ICU)',
+                rasool: { price: 144, note: '' },
+                reaya: { price: 144, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 157, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 211, cov: '90%', note: '' }
+            },
+            {
+                id: 'bed-ccu',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير عناية فائقة قلبية (CCU)',
+                en: 'Coronary Care Unit Bed (CCU)',
+                rasool: { price: 144, note: '' },
+                reaya: { price: 144, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 112, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 157, cov: '90%', note: '' }
+            },
+            {
+                id: 'bed-icn',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير عناية فائقة لحديثي الولادة (ICN)',
+                en: 'Neonatal Intensive Care Bed (ICN)',
+                rasool: { price: 144, note: '' },
+                reaya: { price: 144, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 112, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 157, cov: '90%', note: '' }
+            },
+            {
+                id: 'incubator',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'الحاضنة',
+                en: 'Incubator',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 50, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 59, cov: '90%', note: '' }
+            },
+            {
+                id: 'bed-isolation',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير غرفة عزل',
+                en: 'Isolation Room Bed',
+                rasool: { price: 78, note: '' },
+                reaya: { price: 78, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 90, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 67, cov: '90%', note: '' }
+            },
+            {
+                id: 'delivery-room',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'غرفة الولادة',
+                en: 'Delivery Room',
+                rasool: { price: 200, note: 'حصة المستشفى' },
+                reaya: { price: 75, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 0, cov: '90%', note: 'ضمن المقطوعة' },
+                coop: { price: 84, cov: '90%', note: '' }
+            },
+            {
+                id: 'newborn-bed',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'سرير المولود حديثاً',
+                en: 'Newborn Nursery Bed',
+                rasool: { price: 15, note: '' },
+                reaya: { price: 15, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 0, cov: '90%', note: 'ضمن المقطوعة' },
+                coop: { price: 28, cov: '90%', note: '' }
+            },
+            {
+                id: 'cath-room',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'غرفة القسطرة',
+                en: 'Catheterization Lab Room',
+                rasool: { price: 300, note: 'حصة المستشفى' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'unit-k-out',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Outpatient',
+                ar: 'معامل العمل الطبي (K - خارجي)',
+                en: 'Medical Unit K (Outpatient)',
+                rasool: { price: 4, note: 'K Hospital & K Doctor' },
+                reaya: { price: 4, cov: '75%', note: '' },
+                daman: { price: 4.04, cov: '80%', note: '' },
+                coop: { price: 2, cov: '75%', note: '' }
+            },
+            {
+                id: 'unit-k-in',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'معامل العمل الجراحي (K - داخل المستشفى)',
+                en: 'Surgical Unit K (Inpatient)',
+                rasool: { price: 4, note: 'K Hospital & K Doctor' },
+                reaya: { price: 4, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 4, cov: '90%', note: '' },
+                coop: { price: 5, cov: '90%', note: '' }
+            },
+            {
+                id: 'unit-kop-in',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'معامل غرفة العمليات (K.O.P - داخل المستشفى)',
+                en: 'Operating Room Unit (K.O.P - Inpatient)',
+                rasool: { price: 4, note: 'APP / K Hospital $4' },
+                reaya: { price: 4, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 4, cov: '90%', note: '' },
+                coop: { price: 4, cov: '90%', note: '' }
+            },
+            {
+                id: 'unit-app',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'General',
+                ar: 'معامل APP',
+                en: 'APP Unit',
+                rasool: { price: 4, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'unit-l-out',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Outpatient',
+                ar: 'معامل المختبر (L - خارجي)',
+                en: 'Laboratory Unit L (Outpatient)',
+                rasool: { price: 0.11, note: 'L out' },
+                reaya: { price: 0.11, cov: '75%', note: '' },
+                daman: { price: 0.11, cov: '80%', note: '' },
+                coop: { price: 0.07, cov: '75%', note: '' }
+            },
+            {
+                id: 'unit-l-in',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'معامل المختبر (L - داخل المستشفى)',
+                en: 'Laboratory Unit L (Inpatient)',
+                rasool: { price: 0.11, note: 'L in' },
+                reaya: { price: 0.11, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 0.11, cov: '90%', note: '' },
+                coop: { price: 0, cov: '90%', note: '0 في الجدول' }
+            },
+            {
+                id: 'unit-r-out',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Outpatient',
+                ar: 'معامل الأشعة (R - خارجي)',
+                en: 'Radiology Unit R (Outpatient)',
+                rasool: { price: 0.15, note: 'R out' },
+                reaya: { price: 0.15, cov: '75%', note: '' },
+                daman: { price: 0.17, cov: '80%', note: '' },
+                coop: { price: 0.11, cov: '75%', note: '' }
+            },
+            {
+                id: 'unit-r-in',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'معامل الأشعة (R - داخل المستشفى)',
+                en: 'Radiology Unit R (Inpatient)',
+                rasool: { price: 0.15, note: 'R in' },
+                reaya: { price: 0.15, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 0.17, cov: '90%', note: '' },
+                coop: { price: 0, cov: '90%', note: '0 في الجدول' }
+            },
+            {
+                id: 'unit-a',
+                category: 'Hospital Beds & Multipliers',
+                categoryAr: 'الأسرة والغرف والمعاملات',
+                setting: 'Inpatient',
+                ar: 'معامل مختبر الأنسجة (A)',
+                en: 'Histology / Pathology Unit A',
+                rasool: { price: 0.17, note: 'A in / A out' },
+                reaya: { price: 0.17, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 0, cov: '90%', note: '0 في الجدول' }
+            },
+
+            // =========================================================
+            // 3. IMAGING: MRI, CT, NUCLEAR, ECHO, DOPPLER (التصوير الطبي)
+            // =========================================================
+            {
+                id: 'mri-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي (MRI - خارجي / 1 Origin)',
+                en: 'MRI (1 Origin Any - Outpatient)',
+                rasool: { price: 80, note: '' },
+                reaya: { price: 80, cov: '75%', note: 'مسبقة لبعض الصور' },
+                daman: { price: 79, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 67, cov: '75%', note: '' }
+            },
+            {
+                id: 'mri-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'رنين مغناطيسي (MRI - داخل المستشفى)',
+                en: 'MRI (Inpatient)',
+                rasool: { price: 80, note: '' },
+                reaya: { price: 75, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 90, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 140, cov: '90%', note: '' }
+            },
+            {
+                id: 'mri-2nd-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي صورة ثانية / منطقتين (MRI 2nd / 2 Origin)',
+                en: 'MRI 2nd / MRI 2 Origin Any',
+                rasool: { price: 135, note: 'سعر 2 Origin كامل ($135)' },
+                reaya: { price: 40, cov: '75%', note: 'صورة ثانية' },
+                daman: { price: 39, cov: '80%', note: 'صورة ثانية' },
+                coop: { price: 0, cov: '75%', note: '0 خارجي' }
+            },
+            {
+                id: 'mri-2nd-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'رنين مغناطيسي صورة ثانية (Second MRI - داخل المستشفى)',
+                en: 'Second MRI (Inpatient)',
+                rasool: { price: 135, note: 'MRI 2 Origin Any' },
+                reaya: { price: 37.5, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 45, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 70, cov: '90%', note: '' }
+            },
+            {
+                id: 'mri-cardiac',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي للقلب (MRI Cardiac)',
+                en: 'MRI Cardiac',
+                rasool: { price: 200, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'mri-breast-prostate',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي للثدي / البروستات / Spectroscopy / Sciatic Plexus',
+                en: 'MRI Breast / Prostate / Spectroscopy / Sciatic Plexus',
+                rasool: { price: 135, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'mri-specialized',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي الكتف / CSF Flow / Brain Epilepsy / Anorectal',
+                en: 'MRI Shoulder Arthroscopy / CSF Flow / Implant / Epilepsy / Anorectal',
+                rasool: { price: 100, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'contrast-mri',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'General',
+                ar: 'مادة ظليلية للرنين المغناطيسي (Contrast MRI)',
+                en: 'Contrast MRI',
+                rasool: { price: 20, note: 'Anesthesia MRI = $25' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'anesthesia-mri',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'General',
+                ar: 'تخدير للرنين المغناطيسي (Anesthesia MRI)',
+                en: 'Anesthesia MRI',
+                rasool: { price: 25, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'angio-mri',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير شرايين بالرنين المغناطيسي (Angio MRI)',
+                en: 'Angio MRI',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 200, cov: '75%', note: '' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 90, cov: '75%', note: '' }
+            },
+            {
+                id: 'mri-total-body',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'رنين مغناطيسي لكامل الجسم (MRI Total Body)',
+                en: 'MRI Total Body',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-' },
+                daman: { price: null, cov: '80%', status: 'سعر كل صورة' },
+                coop: { price: 169, cov: '75%', note: '' }
+            },
+            {
+                id: 'ct-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير طبقي محوري (CT Scan - خارجي / 1 Origin)',
+                en: 'CT Scan (1 Origin Any - Outpatient)',
+                rasool: { price: 65, note: '' },
+                reaya: { price: 65, cov: '75%', note: 'CT lung & sinus' },
+                daman: { price: 51, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 39, cov: '75%', note: '' }
+            },
+            {
+                id: 'ct-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'تصوير طبقي محوري (CT Scan - داخل المستشفى)',
+                en: 'CT Scan (Inpatient)',
+                rasool: { price: 65, note: '' },
+                reaya: { price: 55, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 56, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 112, cov: '90%', note: '' }
+            },
+            {
+                id: 'ct-2nd-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'طبقي محوري صورة ثانية / منطقتين (CT 2 Origin / Second CT)',
+                en: 'CT Scan 2 Origin / Second CT Scan',
+                rasool: { price: 112, note: 'سعر 2 Origin كامل ($112)' },
+                reaya: { price: 27.5, cov: '90%', note: 'صورة ثانية (موافقة مسبقة)' },
+                daman: { price: 28, cov: '90%', note: 'صورة ثانية' },
+                coop: { price: 56, cov: '90%', note: 'صورة ثانية' }
+            },
+            {
+                id: 'cardiac-ct',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'طبقي محوري للقلب (Cardiac CT)',
+                en: 'Cardiac CT',
+                rasool: { price: 200, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'coronary-calcium-ct',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'فحص تكلس الشرايين التاجية (Coronary Calcium CT)',
+                en: 'Coronary Calcium CT',
+                rasool: { price: 60, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ct-enterography',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'طبقي محوري للأمعاء (CT Enterography)',
+                en: 'CT Enterography',
+                rasool: { price: 150, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ct-volumetric-liver',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'قياس حجم الكبد بالطبقي المحوري (CT Volumetric Liver)',
+                en: 'CT Volumetric Liver',
+                rasool: { price: 80, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'contrast-ct',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'General',
+                ar: 'مادة ظليلية للطبقي المحوري (Contrast CT Scan)',
+                en: 'Contrast CT Scan',
+                rasool: { price: 20, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ct-total-body',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'طبقي محوري لكامل الجسم (CT Total Body)',
+                en: 'CT Total Body',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: 'سعر كل صورة', note: 'موافقة مسبقة' },
+                coop: { price: 79, cov: '75%', note: '' }
+            },
+            {
+                id: 'angioscan-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير شرايين طبقي (Angioscan - خارجي)',
+                en: 'Angioscan (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 130, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 112, cov: '75%', note: '' }
+            },
+            {
+                id: 'angioscan-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'تصوير شرايين طبقي (Angioscan - داخل المستشفى)',
+                en: 'Angioscan (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 130, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 197, cov: '90%', note: '' }
+            },
+            {
+                id: 'coroscan-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير شرايين القلب (Coroscan - خارجي)',
+                en: 'Coroscan (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 200, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 112, cov: '75%', note: '' }
+            },
+            {
+                id: 'coroscan-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'تصوير شرايين القلب (Coroscan - داخل المستشفى)',
+                en: 'Coroscan (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 200, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 225, cov: '90%', note: '' }
+            },
+            {
+                id: 'denta-scan',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير أسنان ثلاثي الأبعاد (Denta Scan)',
+                en: 'Denta Scan',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 11, cov: '75%', note: '' }
+            },
+            {
+                id: 'pet-scan',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير مقطعي بالإصدار البوزيتروني (PET Scan)',
+                en: 'PET Scan',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 250, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 326, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 315, cov: '75%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'mibg-scan',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير نووي (MIBG Scan)',
+                en: 'MIBG Scan',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 315, cov: '75%', note: '' }
+            },
+            {
+                id: 'leuko-scan',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير الكريات البيضاء (Leuko Scan)',
+                en: 'Leuko Scan',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 169, cov: '75%', note: '' }
+            },
+            {
+                id: 'nuclear-cardiac',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة نووية للقلب مع مادة ظليلية',
+                en: 'Cardiac Nuclear Scan with Contrast',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: 'سعر قديم', note: 'موافقة مسبقة' },
+                coop: { price: 146, cov: '75%', note: '' }
+            },
+            {
+                id: 'nuclear-bone',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة نووية للعظم',
+                en: 'Bone Nuclear Scan (Bone Scintigraphy)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: 'سعر قديم' },
+                coop: { price: 90, cov: '75%', note: '' }
+            },
+            {
+                id: 'bone-densitometry',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة ترقق العظم (DEXA)',
+                en: 'Bone Densitometry (DEXA Scan)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-abdominal-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية للبطن (Echo Abdominal - خارجي)',
+                en: 'Echo Abdominal (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 40, cov: '75%', note: '' },
+                daman: { price: 25, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-abdominal-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية للبطن (Echography Abdominal - داخل المستشفى)',
+                en: 'Echography Abdominal (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 25, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 39, cov: '90%', note: '1 or 2 organs' }
+            },
+            {
+                id: 'echo-abdomio-pelvis-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية للبطن والحوض (Echo Abdomio-Pelvis - خارجي)',
+                en: 'Echo Abdomio-Pelvis (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 55, cov: '75%', note: '' },
+                daman: { price: 25, cov: '80%', note: '' },
+                coop: { price: 20, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-abdomio-pelvis-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية للبطن والحوض (Echography Abdominal Pelvis - داخل المستشفى)',
+                en: 'Echography Abdominal Pelvis (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 45, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 25, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 51, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-pelvis-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية للحوض (Echo Pelvis - خارجي)',
+                en: 'Echo Pelvis (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '75%', note: '' },
+                daman: { price: 23, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-pelvis-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية للحوض (Echography Pelvis - داخل المستشفى)',
+                en: 'Echography Pelvis (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 23, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 39, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-obstetricale-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية نسائية / حمل (Echo Obstetricale - خارجي)',
+                en: 'Echo Obstetricale (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '75%', note: '' },
+                daman: { price: 23, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-obstetricale-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية نسائية / حمل (Echography Obstetricale - داخل المستشفى)',
+                en: 'Echography Obstetricale (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 23, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 39, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-surface-thyroide-breast',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية سطحية / غدة درقية / ثدي (Echo Surface / Thyroide / Breast)',
+                en: 'Echo Surface / Thyroide / Breast / Control',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 30, cov: '75%', note: '' },
+                daman: { price: 23, cov: '80%', note: '' },
+                coop: { price: 17, cov: '75%', note: 'Thyroide/Breast 17 | Surface 11 | Control 0' }
+            },
+            {
+                id: 'echo-hand-wrist-foot',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية لليد أو المعصم أو القدم',
+                en: 'Echo Hand, Wrist, or Foot',
+                rasool: { price: 45, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'second-echography-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية ثانية (Second Echography - داخل المستشفى)',
+                en: 'Second Echography (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 15, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 25, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-endoscopie',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'تصوير صوتي بالمنظار (Echo Endoscopie)',
+                en: 'Echo Endoscopie',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 225, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-doppler-carotide-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'إيكو دوبلر شرايين الرقبة (Echo Doppler Carotide - خارجي)',
+                en: 'Echo Doppler Carotide (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 70, cov: '75%', note: '' },
+                daman: { price: 65, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-doppler-carotide-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'إيكو دوبلر شرايين الرقبة (Echo Doppler Carotide - داخل المستشفى)',
+                en: 'Echo Doppler Carotide (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 70, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 65, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 45, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-doppler-arterial-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'إيكو دوبلر شرايين (Echo Doppler Arterial - خارجي)',
+                en: 'Echo Doppler Arterial (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 60, cov: '75%', note: '' },
+                daman: { price: 44, cov: '80%', note: '' },
+                coop: { price: 28, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-doppler-arteries-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'إيكو دوبلر شرايين (Echo Doppler Arteries - داخل المستشفى)',
+                en: 'Echo Doppler Arteries (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 65, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 44, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 70, cov: '90%', note: '' }
+            },
+            {
+                id: 'echo-doppler-lower-1limb',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'إيكو دوبلر أطراف سفلية / أوردة طرف سفلي واحد',
+                en: 'Echo Doppler Lower Limbs (1 Limb - Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 65, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 44, cov: '90%', note: '45 لأوردة أطراف سفلية' },
+                coop: { price: 39, cov: '90%', note: '84 لأوردة أطراف سفلية' }
+            },
+            {
+                id: 'echo-doppler-lower-2limbs',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'إيكو دوبلر طرفين سفليين (Echo Doppler 2 Lower Limbs)',
+                en: 'Echo Doppler Lower Limbs (2 Limbs - Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 70, cov: '90%', note: '65 (Vascular 2 M.Inf خارجي)' },
+                daman: { price: 45, cov: '90%', note: '44 خارجي' },
+                coop: { price: 51, cov: '90%', note: '28 خارجي' }
+            },
+            {
+                id: 'echo-doppler-renal',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'إيكو دوبلر شرايين الكلى (Echo Doppler Renal)',
+                en: 'Echo Doppler Renal',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 70, cov: '75%', note: '' },
+                daman: { price: 85, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-doppler-testicular',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'General',
+                ar: 'إيكو دوبلر الخصية / الحبل المنوي (Spermatic Cord / Testicular)',
+                en: 'Echo Doppler Spermatic Cord / Testicular',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 60, cov: '75%', note: '65 داخل المستشفى (90%)' },
+                daman: { price: 45, cov: '80% / 90%', note: '' },
+                coop: { price: 22, cov: '75%', note: '39 داخل المستشفى (90%)' }
+            },
+            {
+                id: 'echo-doppler-cardiac-out',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة صوتية ملونة للقلب (Echo Doppler Cardiac Color - خارجي)',
+                en: 'Echo Doppler Cardiac Color (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 63, cov: '75%', note: '' },
+                daman: { price: 64, cov: '80%', note: '' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'echo-doppler-cardiac-in',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'صورة صوتية ملونة للقلب (Echography Cardio - داخل المستشفى)',
+                en: 'Echography Cardio (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 63, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 64, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 70, cov: '90%', note: '' }
+            },
+            {
+                id: 'us-cardio-pediatric',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'إيكو دوبلر قلب للأطفال (U/S Cardio Doppler Pediatric)',
+                en: 'U/S Cardio Doppler Pediatric',
+                rasool: { price: 65, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'cardiac-tee',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'General',
+                ar: 'تصوير القلب عبر المريء (Cardiac Transoesophagienne)',
+                en: 'Cardiac Transoesophageal Echo (TEE)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 100, cov: '75% / 90%', note: 'موافقة مسبقة' },
+                daman: { price: 84, cov: '80% / 90%', note: '' },
+                coop: { price: 45, cov: '75%', note: '112 داخل المستشفى (90%)' }
+            },
+            {
+                id: 'liver-elastography',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'قياس مرونة الكبد (Liver Elastography / Doppler Elastography)',
+                en: 'Liver Elastography / Doppler Elastography',
+                rasool: { price: 50, note: 'Doppler Elastography = $70 | Elastography = $62.5' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'mamography-mamotomie',
+                category: 'Imaging & Scans',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Outpatient',
+                ar: 'صورة شعاعية للثدي / خزعة (Mamography / Mamotomie)',
+                en: 'Mamography / Mamotomie',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 0, cov: '80%', note: '0 Mamography | - Mamotomie' },
+                coop: { price: 22, cov: '75%', note: '22 Mamography | 225 Mamotomie' }
+            },
+
+            // =========================================================
+            // 4. ENDOSCOPY, CARDIOLOGY, NEUROLOGY & EP STUDIES (التنظير والقلب والأعصاب)
+            // =========================================================
+            {
+                id: 'gastroscopy-out',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Outpatient',
+                ar: 'تنظير المعدة (خارجي - Gastroscopy)',
+                en: 'Gastroscopy (Outpatient)',
+                kType: 'gastro',
+                rasool: { price: 175, fixedPrice: 175, note: 'تخدير +$30' },
+                reaya: { price: 175, fixedPrice: 175, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 136, fixedPrice: 136, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 90, fixedPrice: 90, cov: '75%', note: 'خارجي (K=$2)' }
+            },
+            {
+                id: 'gastroscopy-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير المعدة (داخل المستشفى - Gastroscopy)',
+                en: 'Gastroscopy (Inpatient)',
+                kType: 'gastro',
+                rasool: { price: 175, fixedPrice: 175, note: 'تخدير +$30' },
+                reaya: { price: 135, fixedPrice: 135, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 136, fixedPrice: 136, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 56, fixedPrice: 56, cov: '90%', note: 'بدل PP (K=$5)' }
+            },
+            {
+                id: 'gastro-misediathermique',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير المعدة مع كي حراري (Gastroscopy + Misediathermique)',
+                en: 'Gastroscopy + Misediathermique',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 84, cov: '90%', note: 'بدل PP' }
+            },
+            {
+                id: 'colonoscopy-out',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Outpatient',
+                ar: 'تنظير القولون (خارجي - Colonoscopy)',
+                en: 'Colonoscopy (Outpatient)',
+                kType: 'colono',
+                rasool: { price: 275, fixedPrice: 275, note: 'تخدير +$30' },
+                reaya: { price: 275, fixedPrice: 275, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 211, fixedPrice: 211, cov: '80%', note: 'موافقة مسبقة' },
+                coop: { price: 112, fixedPrice: 112, cov: '75%', note: 'خارجي (K=$2)' }
+            },
+            {
+                id: 'colonoscopy-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير القولون (داخل المستشفى - Colonoscopy)',
+                en: 'Colonoscopy (Inpatient)',
+                kType: 'colono',
+                rasool: { price: 275, fixedPrice: 275, note: 'تخدير +$30' },
+                reaya: { price: 200, fixedPrice: 200, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 211, fixedPrice: 211, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 84, fixedPrice: 84, cov: '90%', note: 'بدل PP (K=$5)' }
+            },
+            {
+                id: 'colono-misediathermique',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير القولون مع كي حراري (Colonoscopy + Misediathermique)',
+                en: 'Colonoscopy + Misediathermique',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 96, cov: '90%', note: 'بدل PP' }
+            },
+            {
+                id: 'anesthesia-gastro-colono',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'General',
+                ar: 'تخدير لتنظير المعدة أو القولون (Anesthesia Gastro or Colono)',
+                en: 'Anesthesia for Gastroscopy or Colonoscopy',
+                rasool: { price: 30, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'rectosigmoidoscopy-biopsy-cysto-out',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Outpatient',
+                ar: 'تنظير المستقيم / خزعة / تنظير المثانة (خارجي)',
+                en: 'Rectosigmoidoscopy / Biopsy / Cystoscopy (Outpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 90, cov: '75%', note: 'Recto 90 | Biopsy 17 | Cysto 22 (PLUS K)' }
+            },
+            {
+                id: 'bronchoscopy-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير القصبات الهوائية (Bronchoscopy Diagnostic / Therapeutic)',
+                en: 'Bronchoscopy (Diagnostic & Therapeutic - Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 151, cov: '90%', note: '151 تشخيصي | - علاجي' },
+                coop: { price: 42, cov: '90%', note: '42 تشخيصي | 56 علاجي (بدل PP)' }
+            },
+            {
+                id: 'cystoscopie-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير المثانة (Cystoscopie Diagnostic / Therapeutic - داخل المستشفى)',
+                en: 'Cystoscopie (Diagnostic & Therapeutic - Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 56, cov: '90%', note: '56 تشخيصي | 70 علاجي (بدل PP)' }
+            },
+            {
+                id: 'ercp-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير القنوات الصفراوية (ERCP Diagnostic / Therapeutic)',
+                en: 'ERCP (Diagnostic $1,000 / Therapeutic $1,100)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 1000, cov: '90%', note: '1,000 تشخيصي | 1,100 علاجي' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 169, cov: '90%', note: 'بدل PP + المستلزمات الطبية' }
+            },
+            {
+                id: 'laparoscopy-in',
+                category: 'Endoscopy & Procedures',
+                categoryAr: 'التنظير والإجراءات الطبية',
+                setting: 'Inpatient',
+                ar: 'تنظير البطن الجراحي (Laparoscopy)',
+                en: 'Laparoscopy (Inpatient)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 1011, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 337, cov: '90%', note: 'بدل APP (موافقة مسبقة)' }
+            },
+            {
+                id: 'ecg',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'تخطيط قلب (ECG)',
+                en: 'Electrocardiogram (ECG)',
+                rasool: { price: 10, note: '' },
+                reaya: { price: 10, cov: '75%', note: '5 داخل المستشفى (90%)' },
+                daman: { price: 9, cov: '80% / 90%', note: '' },
+                coop: { price: 17, cov: '75%', note: '14 داخل المستشفى (75%)' }
+            },
+            {
+                id: 'holter-24',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'هولتر 24 ساعة (Holter)',
+                en: 'Holter Monitor (24 Hours)',
+                rasool: { price: 45, note: '' },
+                reaya: { price: 45, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 30, cov: '80%', note: '' },
+                coop: { price: 28, cov: '75%', note: '' }
+            },
+            {
+                id: 'holter-48-week',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'هولتر 48 ساعة / أسبوع (Holter 48 HR / One Week)',
+                en: 'Holter 48 HR ($50) / One Week ($65)',
+                rasool: { price: 50, note: '48 HR = $50 | One week = $65' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'stress-test',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'فحص الجهد للقلب (Stress Test)',
+                en: 'Cardiac Stress Test',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 50, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 41, cov: '80%', note: '' },
+                coop: { price: 28, cov: '75%', note: '' }
+            },
+            {
+                id: 'electrochoc',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'صدمة كهربائية للقلب (Electrochoc)',
+                en: 'Electrochoc / Cardioversion',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 7, cov: '75%', note: '' }
+            },
+            {
+                id: 'amb-pressure',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'مراقبة ضغط الدم (AMB Pressure)',
+                en: 'Ambulatory Blood Pressure Monitoring (ABPM)',
+                rasool: { price: 35, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'fetal-nst',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'تخطيط نبض الجنين (Fetal Non-Stress Test NST)',
+                en: 'Fetal Non-Stress Test (NST)',
+                rasool: { price: 10, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'eeg-standard',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'General',
+                ar: 'تخطيط الدماغ (EEG)',
+                en: 'Electroencephalogram (EEG)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 40, cov: '75%', note: '42 داخل المستشفى (90%)' },
+                daman: { price: 28, cov: '80% / 90%', note: '' },
+                coop: { price: 22, cov: '75%', note: '28 داخل المستشفى (مبلغ مقطوع)' }
+            },
+            {
+                id: 'eeg-24h',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'تخطيط الدماغ 24 ساعة (EEG 24 Hours)',
+                en: 'EEG 24 Hours',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 56, cov: '90%', note: '47 - 65 (موافقة مسبقة)' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 463, cov: '90%', note: 'مبلغ مقطوع يشمل المستلزمات' }
+            },
+            {
+                id: 'emg',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'تخطيط الأعصاب والعضلات (EMG)',
+                en: 'Electromyography (EMG)',
+                rasool: { price: 50, note: '' },
+                reaya: { price: 45, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 39, cov: '80%', note: '' },
+                coop: { price: 34, cov: '75%', note: '' }
+            },
+            {
+                id: 'vng-vep-bera',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Outpatient',
+                ar: 'فحوصات التوازن والعصب البصري والسمعي (VNG / VEP / BERA)',
+                en: 'VNG ($15) / Visual Evoked Potential ($22) / BERA Test ($22)',
+                rasool: { price: 22, note: 'VNG = $15 | VEP = $22 | BERA = $22' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'coronarography',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'تمييل شرايين القلب (Coronarography)',
+                en: 'Coronarography',
+                rasool: { price: null, status: 'غرفة القسطرة $300' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 618, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 562, cov: '90%', note: 'مبلغ مقطوع' }
+            },
+            {
+                id: 'angiography',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'تصوير الأوعية الدموية (Angiography)',
+                en: 'Angiography',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 2028, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 1966, cov: '90%', note: 'مبلغ مقطوع' }
+            },
+            {
+                id: 'arteriography-4axes',
+                category: 'Cardiology & EP',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'تصوير شرايين الدماغ 4 محاور (Arteriography Cerebrale 4 Axes)',
+                en: 'Arteriography Cerebrale 4 Axes',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 0, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 562, cov: '90%', note: 'بما فيها أجرة الآلة' }
+            },
+            {
+                id: 'arteriography-others',
+                category: 'Cardiology & EP',
+                categoryAr: 'التصوير الطبي والأشعة',
+                setting: 'Inpatient',
+                ar: 'تصوير الشريان السباتي / الأبهر / الأطراف السفلية (Arteriography)',
+                en: 'Arteriography Carotide / Aortography / Lower Limbs',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 0, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 393, cov: '90%', note: 'بما فيها أجرة الآلة' }
+            },
+            {
+                id: 'open-heart',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'عملية قلب مفتوح (Open Heart Surgery)',
+                en: 'Open Heart Surgery',
+                rasool: { price: null, status: 'مقطوعة إضافية $600/$800' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 8600, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 7303, cov: '90%', note: 'مبلغ مقطوع' }
+            },
+            {
+                id: 'open-heart-addon',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'مقطوعة إضافية للقلب المفتوح (للكبار / للصغار)',
+                en: 'Open Heart Additional Package (Adults $600 / Pediatrics $800)',
+                rasool: { price: 600, note: 'للكبار $600 | للصغار $800' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'tavi',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'زراعة الصمام الأبهري بالقسطرة (TAVI)',
+                en: 'TAVI (Transcatheter Aortic Valve Implantation)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: 7865, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 22472, cov: '90%', note: 'مبلغ مقطوع' }
+            },
+            {
+                id: 'pulmonary-mitral-dilatation',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'توسيع الصمام الرئوي / التاجي (Pulmonary / Mitral Dilatation)',
+                en: 'Pulmonary ($1,966) / Pediatric ($2,247) / Mitral Dilatation ($2,528)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 2528, cov: '90%', note: 'Pulm 1,966 | Ped 2,247 | Mitral 2,528' }
+            },
+            {
+                id: 'ep-93650',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب (EP Study 93650 AV Node)',
+                en: 'EP Study 93650 - AV Node',
+                rasool: { price: 1200, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-93651-right',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب (EP Study 93651 SVT / Flutter / WPW Right)',
+                en: 'EP Study 93651 - SVT Right / Atrial Flutter Right / WPW Right',
+                rasool: { price: 2500, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-93651-left',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب (EP Study 93651+93527 SVT / WPW Left)',
+                en: 'EP Study 93651 + 93527 - SVT (Left) / WPW (Left)',
+                rasool: { price: 3600, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-navix-right',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب (EP Study 93651+NAVIX Atrial Tachycardia Right)',
+                en: 'EP Study 93651 + NAVIX - Atrial Tachycardia (Right)',
+                rasool: { price: 5500, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-cryo-svt',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'كي بالتبريد (EP Study 93651 Cryo SVT)',
+                en: 'EP Study 93651 - Cryo SVT',
+                rasool: { price: 6000, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-navix-left',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب (EP Study 93651+93527+NAVIX Atrial Flutter/Tachy Left)',
+                en: 'EP Study 93651 + 93527 + NAVIX - Atrial Flutter / Tachycardia (Left)',
+                rasool: { price: 6500, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-vt-pvc',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'دراسة كهرباء القلب البطينية (EP Study 93652±93527 VT or PVCs)',
+                en: 'EP Study 93652 ± 93527 - Ventricular Tachycardia or PVCs',
+                rasool: { price: 7000, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-afib',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'كي الرجفان الأذيني (EP Study 93652 Atrial Fibrillation)',
+                en: 'EP Study 93652 ± 93527 - Atrial Fibrillation',
+                rasool: { price: 9000, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'ep-cryo-afib',
+                category: 'Cardiology & EP',
+                categoryAr: 'القلب وتخطيط كهرباء القلب',
+                setting: 'Inpatient',
+                ar: 'كي الرجفان الأذيني بالتبريد (Cryo Atrial Fibrillation 93652)',
+                en: 'EP Study 93652 - Cryo Atrial Fibrillation',
+                rasool: { price: 12000, note: '' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+
+            // =========================================================
+            // 5. OPHTHALMOLOGY & SPECIALTY PROCEDURES (طب العيون وعلاجات تخصصية)
+            // =========================================================
+            {
+                id: 'yag-laser',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'ليزر ياغ للعيون (YAG Laser)',
+                en: 'YAG Laser',
+                rasool: { price: 52, note: '' },
+                reaya: { price: 52, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 39, cov: '75%', note: '' }
+            },
+            {
+                id: 'argon-laser',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'ليزر أرغون للشبكية (Argon Laser)',
+                en: 'Argon Laser',
+                rasool: { price: 52, note: '' },
+                reaya: { price: 150, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 39, cov: '75%', note: '' }
+            },
+            {
+                id: 'photo-laser-rasool',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'ليزر ضوئي للعيون (Photo Laser 1st Session / Max)',
+                en: 'Photo Laser 1st Session ($75) / Max ($40)',
+                rasool: { price: 75, note: '1st Session = $75 | Max = $40' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+            {
+                id: 'cold-laser-eye',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'جلسات ليزر على البارد للعيون',
+                en: 'Cold Laser Eye Sessions',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 39, cov: '75%', note: '' }
+            },
+            {
+                id: 'oct-pentacam',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'تصوير مقطعي للشبكية / القرنية (OCT / Penta Cam)',
+                en: 'OCT / Penta Cam',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 40, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 17, cov: '75%', note: '' }
+            },
+            {
+                id: 'fluorescent-angiography',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'تصوير قاع العين بالفلوريسين (Fluorescent Angiography)',
+                en: 'Fluorescent Angiography',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 75, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 22, cov: '75%', note: '' }
+            },
+            {
+                id: 'a-b-scan-eye',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'فحص قياس عدسة العين / إيكو العين (A Scan / B Scan)',
+                en: 'Ophthalmic A Scan / B Scan',
+                rasool: { price: 10, note: 'A scan = $10' },
+                reaya: { price: 20, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: 22, cov: '80%', note: '' },
+                coop: { price: 13, cov: '75%', note: '' }
+            },
+            {
+                id: 'visual-field',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'فحص الساحة البصرية (Visual Field)',
+                en: 'Visual Field Test',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 40, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '80%', status: '-' },
+                coop: { price: 13, cov: '75%', note: '' }
+            },
+            {
+                id: 'cross-linking',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'تثبيت القرنية (Cross Linking)',
+                en: 'Corneal Cross Linking',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 400, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 337, cov: '75%', note: '' }
+            },
+            {
+                id: 'corneal-ring',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'زرع حلقات داخل العين (RING)',
+                en: 'Intracorneal Ring Implant (RING)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 450, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 562, cov: '75%', note: '' }
+            },
+            {
+                id: 'eylea-lucentis',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'حقن العين (Eylea or Lucentis Amp)',
+                en: 'Eylea or Lucentis Ampoule',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 125, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 337, cov: '75%', note: '' }
+            },
+            {
+                id: 'avastin-eye',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'حقن أفاستين للعين (Avastin)',
+                en: 'Avastin Eye Injection',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 125, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 56, cov: '75%', note: '' }
+            },
+            {
+                id: 'ozurdex-lasik',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'Ozurdex / تشطيب قرنية / عملية لايزر (Myopy / Astigmatism / Hypermetropy)',
+                en: 'Ozurdex / LASIK (Myopia, Astigmatism, Hypermetropia)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 169, cov: '75%', note: 'Ozurdex = 337 | LASIK = 169' }
+            },
+            {
+                id: 'glasses-single-double',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'نظارات طبية (قريب أو بعيد / قريب وبعيد)',
+                en: 'Prescription Glasses (Single $45 / Bifocal $90 Coop)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 10, cov: '75%', note: 'واحدة بالسنة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 45, cov: '75%', note: '45 قريب أو بعيد | 90 قريب وبعيد' }
+            },
+            {
+                id: 'allergies-test',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'فحص الحساسية (Allergies Test)',
+                en: 'Allergies Test',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 135, cov: '75%', note: '' }
+            },
+            {
+                id: 'freestyle-libre-wound',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'حساس السكري (Sensor FreeStyle Libre) / علاج الجروح المزمنة XLR8',
+                en: 'FreeStyle Libre Sensor / Chronic Wound Care XLR8',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 90, cov: '75%', note: '' }
+            },
+            {
+                id: 'ivf',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'طفل أنبوب (IVF)',
+                en: 'In Vitro Fertilization (IVF)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 1100, cov: '75%', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 281, cov: '75%', note: '' }
+            },
+            {
+                id: 'brca-jak-tests',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'فحوصات جينية (BRCA1-2 / JAK1-2)',
+                en: 'Genetic Panels (BRCA1-2 $281 / JAK1-2 $112)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '75%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, status: 'لا يغطى' },
+                coop: { price: 281, cov: '75%', note: 'BRCA1-2 = 281 | JAK1-2 = 112' }
+            },
+            {
+                id: 'lithotripsy',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'تفتيت الحصى (Lithotripsy)',
+                en: 'Lithotripsy',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 600, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 500, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 674, cov: '90%', note: '' }
+            },
+            {
+                id: 'cholesterol-dialysis',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'جلسة غسيل كولسترول',
+                en: 'Cholesterol Dialysis / LDL Apheresis',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 169, cov: '90%', note: '' }
+            },
+            {
+                id: 'kidney-transplant',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'زرع كلية',
+                en: 'Kidney Transplant',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                coop: { price: 11236, cov: '90%', note: '' }
+            },
+            {
+                id: 'autograft-allograft',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'زرع أنسجة / عظم (Autograft / Allograft)',
+                en: 'Autograft ($25,562) / Allograft ($29,494)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-', note: 'موافقة مسبقة' },
+                daman: { price: null, cov: '90%', status: '-' },
+                coop: { price: 29494, cov: '90%', note: 'Autograft 25,562 | Allograft 29,494' }
+            },
+            {
+                id: 'blood-unit',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'وحدة دم (Blood Unit)',
+                en: 'Blood Unit',
+                rasool: { price: 75, note: '' },
+                reaya: { price: 82.5, cov: '90%', note: '65 - 100 (موافقة مسبقة)' },
+                daman: { price: 62, cov: '90%', note: '' },
+                coop: { price: 84, cov: '90%', note: '' }
+            },
+            {
+                id: 'platelets',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'صفائح دموية (Platelets)',
+                en: 'Platelets Unit',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 390, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 211, cov: '90%', note: '' },
+                coop: { price: 281, cov: '90%', note: 'تدفع إضافة للمقطوعة' }
+            },
+            {
+                id: 'plasmapherese',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Inpatient',
+                ar: 'فصل البلازما (Plasmapherese)',
+                en: 'Plasmapheresis',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: 390, cov: '90%', note: 'موافقة مسبقة' },
+                daman: { price: 225, cov: '90%', note: '' },
+                coop: { price: 281, cov: '90%', note: 'موافقة مسبقة' }
+            },
+            {
+                id: 'radiation-therapy',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'General',
+                ar: 'علاج شعاعي (مختلف أنواع العلاجات الشعاعية)',
+                en: 'Radiation Therapy',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, cov: '90%', status: '-' },
+                daman: { price: 2247, cov: '90%', note: 'موافقة مسبقة' },
+                coop: { price: 332.5, cov: '75%', note: '165 - 500 (مبلغ إجمالي 94 علاجاً)' }
+            },
+            {
+                id: 'panoramic-pcr-fpft',
+                category: 'Ophthalmology & Specialty',
+                categoryAr: 'طب العيون وعلاجات تخصصية',
+                setting: 'Outpatient',
+                ar: 'صورة بانوراميك / فحص PCR / فحص FPFT',
+                en: 'Panoramic ($6) / PCR ($3) / FPFT ($150)',
+                rasool: { price: 150, note: 'Panoramic = $6 | PCR = $3 | FPFT = $150' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: null, status: 'غير مدرج' },
+                coop: { price: null, status: 'غير مدرج' }
+            },
+
+            // =========================================================
+            // 6. IMPLANTS & MEDICAL SUPPLIES (المستلزمات الطبية والزرعات)
+            // =========================================================
+            {
+                id: 'stent-all',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'دعامة قلبية (Stent - All Kind)',
+                en: 'Coronary Stent (All Kinds)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 1011, cov: '90%', note: '' }
+            },
+            {
+                id: 'peripheral-iliac-stent',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'دعامة شريانية طرفية (Peripheral / Iliac Stent)',
+                en: 'Peripheral / Iliac Stent',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 517, cov: '90%', note: '' }
+            },
+            {
+                id: 'pacemaker-vvir',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'ناظم خطى القلب أحادي (Pacemaker VVIR)',
+                en: 'Pacemaker VVIR',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 1236, cov: '90%', note: '' }
+            },
+            {
+                id: 'pacemaker-dddr',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'ناظم خطى القلب ثنائي (Pacemaker DDDR)',
+                en: 'Pacemaker DDDR',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 1854, cov: '90%', note: '' }
+            },
+            {
+                id: 'pacemaker-3ch',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'ناظم خطى القلب ثلاثي الحجرات (Pacemaker 3 Chambers)',
+                en: 'Pacemaker 3 Chambers (CRT)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 5393, cov: '90%', note: '' }
+            },
+            {
+                id: 'mesh-large-xl',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'شبكة فتق كبيرة (MESH Large or XL)',
+                en: 'Surgical MESH (Large or XL)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 31, cov: '90%', note: '' }
+            },
+            {
+                id: 'biopsy-needle-set',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'إبرة خزعة (Needle Disposable Biopsy Set)',
+                en: 'Needle Disposable Biopsy Set',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 36, cov: '90%', note: '' }
+            },
+            {
+                id: 'ceea-stapler',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'دباسة جراحية (CEEA Stapler)',
+                en: 'CEEA Surgical Stapler',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 315, cov: '90%', note: '' }
+            },
+            {
+                id: 'laparoscopic-clip-applier',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'ملقط جراحة بالمنظار (Laparoscopic Clip Applier)',
+                en: 'Laparoscopic Clip Applier',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 62, cov: '90%', note: '' }
+            },
+            {
+                id: 'biliary-balloon-dilator',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'بالون توسيع القنوات الصفراوية (Biliary Balloon Dilator)',
+                en: 'Biliary Balloon Dilator',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 152, cov: '90%', note: '' }
+            },
+            {
+                id: 'multi-band-ligator',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'ربط دوالي المريء (Multi Band Ligator)',
+                en: 'Multi Band Ligator',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 97, cov: '90%', note: '' }
+            },
+            {
+                id: 'guide-wire-ercp',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'سلك توجيه (Guide Wire for ERCP)',
+                en: 'Guide Wire for ERCP',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 101, cov: '90%', note: '' }
+            },
+            {
+                id: 'multi-purpose-pump-2674',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'مضخة متعددة الأغراض (Multi Purpose Pump with Overdose Control)',
+                en: 'Multi Purpose Pump with Overdose Control',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 2674, cov: '90%', note: '674 مع أنابيب حرة (Free Tubing)' }
+            },
+            {
+                id: 'disposable-catheter-reservoir',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'قسطرة وخزانات ومراقبة السكر (Disposable Catheter / Reservoirs / Glucose Sensor)',
+                en: 'Disposable Catheter ($90) / Reservoirs ($34) / Glucose Sensor ($56)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 90, cov: '90%', note: 'Catheter 90 | Reservoirs 34 | Glucose Sensor 56' }
+            },
+            {
+                id: 'csf-catheters',
+                category: 'Implants & Medical Supplies',
+                categoryAr: 'المستلزمات الطبية والزرعات',
+                setting: 'Inpatient',
+                ar: 'قسطرة السائل الدماغي (CSF Ventricular / Peritoneal Catheter)',
+                en: 'CSF Ventricular ($43) / CSF Peritoneal Catheter ($54)',
+                rasool: { price: null, status: 'غير مدرج' },
+                reaya: { price: null, status: 'غير مدرج' },
+                daman: { price: 0, cov: '90%', note: '0 في الجدول' },
+                coop: { price: 54, cov: '90%', note: 'Ventricular 43 | Peritoneal 54' }
+            }
+        ];
+
+        // Compute effective price for a payer on a given row (handling dynamic K-multiplier for Gastro/Colono)
+        function getEffectivePrice(row, payerKey) {
+            if (row.kType && state.endoscopyMode === 'k_calc') {
+                const units = row.kType === 'gastro' ? state.gastroK : state.colonoK;
+                if (!units || units <= 0) return null;
+                if (payerKey === 'rasool') return units * K_RATES.rasool;
+                if (payerKey === 'reaya') return units * K_RATES.reaya;
+                if (payerKey === 'daman') return units * K_RATES.daman;
+                if (payerKey === 'coop') {
+                    const rate = row.setting === 'Inpatient' ? K_RATES.coop_inpatient : K_RATES.coop_outpatient;
+                    return units * rate;
+                }
+            }
+            return row[payerKey]?.price ?? null;
+        }
+
+        // Format currency neatly
+        function formatUSD(val) {
+            if (val === null || val === undefined || isNaN(val)) return '—';
+            return Number.isInteger(val) ? `$${val.toLocaleString()}` : `$${val.toFixed(2)}`;
+        }
+
+        // Populate Category Dropdown
+        function initCategories() {
+            const select = document.getElementById('category-filter');
+            select.innerHTML = '<option value="ALL">جميع التصنيفات (All Categories)</option>';
+            const uniqueCats = [...new Set(servicesData.map(s => s.category))];
+            uniqueCats.forEach(cat => {
+                const item = servicesData.find(s => s.category === cat);
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = `${item.categoryAr} (${cat})`;
+                select.appendChild(opt);
+            });
+        }
+
+        // --- MULTI-SELECT SERVICE PICKER LOGIC ---
+        function toggleServiceDropdown() {
+            const pop = document.getElementById('service-picker-popover');
+            pop.classList.toggle('hidden');
+            if (!pop.classList.contains('hidden')) {
+                renderServiceChecklist();
+                document.getElementById('picker-search-input').focus();
+            }
+        }
+
+        // Close popover when clicking outside
+        document.addEventListener('click', function (e) {
+            const wrapper = document.getElementById('service-picker-wrapper');
+            const pop = document.getElementById('service-picker-popover');
+            if (wrapper && pop && !wrapper.contains(e.target)) {
+                pop.classList.add('hidden');
+            }
+        });
+
+        function selectAllServices() {
+            state.selectedIds = new Set(servicesData.map(s => s.id));
+            syncServicePickerUI();
+            renderTable();
+        }
+
+        function selectComparableOnly() {
+            state.selectedIds = new Set(
+                servicesData.filter(s => analyzeRow(s).validCount >= 2).map(s => s.id)
+            );
+            syncServicePickerUI();
+            renderTable();
+        }
+
+        function clearSelectedServices() {
+            state.selectedIds.clear();
+            syncServicePickerUI();
+            renderTable();
+        }
+
+        function toggleSingleService(id) {
+            if (state.selectedIds.has(id)) {
+                state.selectedIds.delete(id);
+            } else {
+                state.selectedIds.add(id);
+            }
+            syncServicePickerUI();
+            renderTable();
+        }
+
+        function toggleCategoryServices(catName, shouldSelect) {
+            servicesData.filter(s => s.category === catName).forEach(s => {
+                if (shouldSelect) {
+                    state.selectedIds.add(s.id);
+                } else {
+                    state.selectedIds.delete(s.id);
+                }
+            });
+            syncServicePickerUI();
+            renderTable();
+        }
+
+        function renderServiceChecklist() {
+            const container = document.getElementById('service-checklist-container');
+            const q = document.getElementById('picker-search-input').value.trim().toLowerCase();
+
+            const filtered = servicesData.filter(s =>
+                !q || s.ar.toLowerCase().includes(q) || s.en.toLowerCase().includes(q) || s.categoryAr.toLowerCase().includes(q)
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="py-6 text-center text-xs text-slate-400">لا توجد خدمات مطابقة للبحث</div>`;
+                return;
+            }
+
+            const grouped = {};
+            filtered.forEach(s => {
+                if (!grouped[s.category]) grouped[s.category] = { ar: s.categoryAr, items: [] };
+                grouped[s.category].items.push(s);
+            });
+
+            container.innerHTML = Object.entries(grouped).map(([cat, group]) => {
+                const allInGroupSelected = group.items.every(i => state.selectedIds.has(i.id));
+                return `
+                    <div class="pt-2 first:pt-0">
+                        <div class="flex items-center justify-between px-2 py-1 bg-slate-100 rounded-lg mb-1">
+                            <span class="text-[11px] font-bold text-slate-700">${group.ar} <span class="font-en text-slate-400">(${group.items.length})</span></span>
+                            <button type="button" onclick="toggleCategoryServices('${cat}', ${!allInGroupSelected})"
+                                class="text-[10px] font-bold px-2 py-0.5 rounded ${allInGroupSelected ? 'bg-rose-100 text-rose-700' : 'bg-slate-800 text-white'}">
+                                ${allInGroupSelected ? 'إلغاء المجموعة' : 'تحديد المجموعة'}
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            ${group.items.map(item => {
+                                const checked = state.selectedIds.has(item.id);
+                                return `
+                                    <label class="flex items-start gap-2 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-xs select-none ${checked ? 'bg-emerald-50/50' : ''}">
+                                        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleSingleService('${item.id}')"
+                                            class="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900">
+                                        <div class="leading-tight">
+                                            <div class="font-bold text-slate-800">${item.ar}</div>
+                                            <div class="text-[10px] text-slate-500 font-en">${item.en}</div>
+                                        </div>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function syncServicePickerUI() {
+            const total = servicesData.length;
+            const selectedCount = state.selectedIds.size;
+            const summaryEl = document.getElementById('service-picker-summary');
+            const countEl = document.getElementById('service-picker-count');
+            const chipsContainer = document.getElementById('selected-chips-container');
+
+            countEl.textContent = `${selectedCount} / ${total}`;
+
+            if (selectedCount === total) {
+                summaryEl.textContent = 'جميع الخدمات محددة (All Services)';
+                chipsContainer.classList.add('hidden');
+                chipsContainer.classList.remove('flex');
+            } else if (selectedCount === 0) {
+                summaryEl.textContent = 'لم يتم اختيار أي خدمة — اختر من القائمة أو اضغط "الكل"';
+                chipsContainer.classList.add('hidden');
+                chipsContainer.classList.remove('flex');
+            } else {
+                summaryEl.textContent = `تم اختيار ${selectedCount} خدمة للمقارنة المخصصة`;
+                chipsContainer.classList.remove('hidden');
+                chipsContainer.classList.add('flex');
+                const selectedItems = servicesData.filter(s => state.selectedIds.has(s.id));
+                chipsContainer.innerHTML = selectedItems.map(item => `
+                    <span class="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-800 text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-2xs">
+                        <span>${item.ar}</span>
+                        <button type="button" onclick="toggleSingleService('${item.id}')" class="text-rose-500 hover:text-rose-700 font-bold leading-none">&times;</button>
+                    </span>
+                `).join('');
+            }
+
+            const pop = document.getElementById('service-picker-popover');
+            if (!pop.classList.contains('hidden')) {
+                renderServiceChecklist();
+            }
+        }
+        ];
+
+        // Compute effective price for a payer on a given row (handling dynamic K-multiplier for Gastro/Colono)
+        function getEffectivePrice(row, payerKey) {
+            if (row.kType && state.endoscopyMode === 'k_calc') {
+                const units = row.kType === 'gastro' ? state.gastroK : state.colonoK;
+                if (!units || units <= 0) return null;
+                if (payerKey === 'rasool') return units * K_RATES.rasool;
+                if (payerKey === 'reaya') return units * K_RATES.reaya;
+                if (payerKey === 'daman') return units * K_RATES.daman;
+                if (payerKey === 'coop') {
+                    const rate = row.setting === 'Inpatient' ? K_RATES.coop_inpatient : K_RATES.coop_outpatient;
+                    return units * rate;
+                }
+            }
+            return row[payerKey]?.price ?? null;
+        }
+
+        // Format currency neatly
+        function formatUSD(val) {
+            if (val === null || val === undefined || isNaN(val)) return '—';
+            return Number.isInteger(val) ? `$${val.toLocaleString()}` : `$${val.toFixed(2)}`;
+        }
+
+        // Populate Category Dropdown
+        function initCategories() {
+            const select = document.getElementById('category-filter');
+            const uniqueCats = [...new Set(servicesData.map(s => s.category))];
+            uniqueCats.forEach(cat => {
+                const item = servicesData.find(s => s.category === cat);
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = `${item.categoryAr} (${cat})`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Switch between K-Multiplier Mode and Fixed Tariff Mode
+        function setEndoscopyMode(mode) {
+            state.endoscopyMode = mode;
+            const kBtn = document.getElementById('mode-k-btn');
+            const fBtn = document.getElementById('mode-fixed-btn');
+            if (mode === 'k_calc') {
+                kBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-400 text-slate-950 shadow';
+                fBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white';
+            } else {
+                fBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-400 text-slate-950 shadow';
+                kBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white';
+            }
+            renderTable();
+        }
+
+        // Update K inputs and live breakdown previews
+        function updateKValues() {
+            const gVal = parseFloat(document.getElementById('gastro-k-input').value) || 0;
+            const cVal = parseFloat(document.getElementById('colono-k-input').value) || 0;
+            state.gastroK = gVal;
+            state.colonoK = cVal;
+
+            document.getElementById('gastro-preview-tag').textContent = `${gVal} × K`;
+            document.getElementById('colono-preview-tag').textContent = `${cVal} × K`;
+
+            document.getElementById('gastro-live-breakdown').innerHTML = `
+                <span>Rasool/رعاية/ضمان: <strong class="text-slate-900">$${(gVal * 4).toLocaleString()}</strong></span>
+                <span>تعاونية (داخل): <strong class="text-emerald-700">$${(gVal * 5).toLocaleString()}</strong></span>
+                <span>تعاونية (خارج): <strong class="text-emerald-700">$${(gVal * 2).toLocaleString()}</strong></span>
+            `;
+
+            document.getElementById('colono-live-breakdown').innerHTML = `
+                <span>Rasool/رعاية/ضمان: <strong class="text-slate-900">$${(cVal * 4).toLocaleString()}</strong></span>
+                <span>تعاونية (داخل): <strong class="text-emerald-700">$${(cVal * 5).toLocaleString()}</strong></span>
+                <span>تعاونية (خارج): <strong class="text-emerald-700">$${(cVal * 2).toLocaleString()}</strong></span>
+            `;
+
+            renderTable();
+        }
+
+        // Analyze row pricing stats (Max, Min, Spread %, Highest Payers)
+        function analyzeRow(row) {
+            const payers = ['rasool', 'reaya', 'daman', 'coop'];
+            const prices = {};
+            const validValues = [];
+
+            payers.forEach(p => {
+                const val = getEffectivePrice(row, p);
+                prices[p] = val;
+                if (val !== null && val > 0) {
+                    validValues.push(val);
+                }
+            });
+
+            if (validValues.length === 0) {
+                return { prices, maxVal: null, minVal: null, spreadPct: 0, highestPayers: [], validCount: 0 };
+            }
+
+            const maxVal = Math.max(...validValues);
+            const minVal = Math.min(...validValues);
+            const highestPayers = payers.filter(p => prices[p] === maxVal && maxVal > 0);
+            const spreadPct = (validValues.length >= 2 && minVal > 0)
+                ? ((maxVal - minVal) / minVal) * 100
+                : 0;
+
+            return {
+                prices,
+                maxVal,
+                minVal,
+                spreadPct,
+                highestPayers,
+                validCount: validValues.length
+            };
+        }
+
+        // Render KPI Summary Cards
+        function renderKPIs(filteredRows) {
+            const kpiContainer = document.getElementById('kpi-container');
+            let highestCounts = { rasool: 0, reaya: 0, daman: 0, coop: 0 };
+            let totalSpread = 0;
+            let comparableCount = 0;
+
+            filteredRows.forEach(row => {
+                const stats = analyzeRow(row);
+                if (stats.validCount >= 2) {
+                    comparableCount++;
+                    totalSpread += stats.spreadPct;
+                    stats.highestPayers.forEach(p => highestCounts[p]++);
+                }
+            });
+
+            const avgSpread = comparableCount > 0 ? (totalSpread / comparableCount).toFixed(1) : '0.0';
+
+            kpiContainer.innerHTML = `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div class="text-xs font-bold text-slate-500">إجمالي الخدمات المعروضة</div>
+                    <div class="text-2xl font-extrabold text-slate-900 font-en mt-1">${filteredRows.length} <span class="text-xs font-normal text-slate-400">Services</span></div>
+                    <div class="text-[11px] text-emerald-700 font-semibold mt-1">${comparableCount} خدمة قابلة للمقارنة المباشرة</div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div class="text-xs font-bold text-slate-500">متوسط فرق السعر (Avg % Spread)</div>
+                    <div class="text-2xl font-extrabold text-amber-600 font-en mt-1">+${avgSpread}%</div>
+                    <div class="text-[11px] text-slate-500 mt-1">بين أدنى وأعلى تسعيرة/سقف</div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs sm:col-span-2">
+                    <div class="text-xs font-bold text-slate-500 mb-2">عدد المرات التي سجلت فيها كل جهة السعر/السقف الأعلى (Highest Count)</div>
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div class="bg-slate-100 rounded-xl p-2">
+                            <div class="text-[11px] font-bold text-slate-700">Rasool</div>
+                            <div class="text-lg font-extrabold text-slate-900 font-en">${highestCounts.rasool}</div>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-2 border border-amber-200">
+                            <div class="text-[11px] font-bold text-amber-900">الرعاية</div>
+                            <div class="text-lg font-extrabold text-amber-700 font-en">${highestCounts.reaya}</div>
+                        </div>
+                        <div class="bg-sky-50 rounded-xl p-2 border border-sky-200">
+                            <div class="text-[11px] font-bold text-sky-900">الضمان</div>
+                            <div class="text-lg font-extrabold text-sky-700 font-en">${highestCounts.daman}</div>
+                        </div>
+                        <div class="bg-emerald-50 rounded-xl p-2 border border-emerald-200">
+                            <div class="text-[11px] font-bold text-emerald-900">التعاونية</div>
+                            <div class="text-lg font-extrabold text-emerald-700 font-en">${highestCounts.coop}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Format percentage badge relative to chosen baseline
+        function getDiffBadgeHTML(val, stats, baselineMode, rasoolVal) {
+            if (val === null || val <= 0 || stats.validCount < 2) return '';
+
+            if (baselineMode === 'vs_lowest') {
+                if (val === stats.minVal) {
+                    return `<span class="inline-block text-[10px] font-en font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Lowest</span>`;
+                }
+                const pct = ((val - stats.minVal) / stats.minVal) * 100;
+                return `<span class="inline-block text-[10px] font-en font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">+${pct.toFixed(1)}% vs min</span>`;
+            }
+
+            if (baselineMode === 'vs_highest') {
+                if (val === stats.maxVal) {
+                    return `<span class="inline-block text-[10px] font-en font-bold text-amber-900 bg-amber-200/80 px-1.5 py-0.5 rounded">Highest (100%)</span>`;
+                }
+                const pct = ((val - stats.maxVal) / stats.maxVal) * 100;
+                return `<span class="inline-block text-[10px] font-en font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${pct.toFixed(1)}%</span>`;
+            }
+
+            if (baselineMode === 'vs_rasool') {
+                if (rasoolVal === null || rasoolVal <= 0) return '';
+                if (val === rasoolVal) {
+                    return `<span class="inline-block text-[10px] font-en font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">0% (Base)</span>`;
+                }
+                const pct = ((val - rasoolVal) / rasoolVal) * 100;
+                const sign = pct > 0 ? '+' : '';
+                const color = pct > 0 ? 'text-rose-700 bg-rose-50' : 'text-emerald-700 bg-emerald-50';
+                return `<span class="inline-block text-[10px] font-en font-bold ${color} px-1.5 py-0.5 rounded">${sign}${pct.toFixed(1)}%</span>`;
+            }
+            return '';
+        }
+
+        // Render individual payer cell
+        function renderPayerCell(row, payerKey, stats, baselineMode) {
+            const info = row[payerKey] || {};
+            const effectiveVal = stats.prices[payerKey];
+            const isHighest = stats.validCount >= 2 && effectiveVal !== null && effectiveVal === stats.maxVal && effectiveVal > 0;
+
+            // Show K-formula helper if active on endoscopy rows
+            let kSubText = '';
+            if (row.kType && state.endoscopyMode === 'k_calc' && effectiveVal !== null) {
+                const units = row.kType === 'gastro' ? state.gastroK : state.colonoK;
+                const kUnitPrice = payerKey === 'coop'
+                    ? (row.setting === 'Inpatient' ? K_RATES.coop_inpatient : K_RATES.coop_outpatient)
+                    : K_RATES.rasool;
+                kSubText = `<div class="text-[10px] font-en text-indigo-700 font-semibold">${units}K × $${kUnitPrice} <span class="text-slate-400">(ثابت: $${info.fixedPrice})</span></div>`;
+            } else if (row.kType && state.endoscopyMode === 'fixed' && effectiveVal !== null) {
+                const units = row.kType === 'gastro' ? state.gastroK : state.colonoK;
+                const kUnitPrice = payerKey === 'coop'
+                    ? (row.setting === 'Inpatient' ? K_RATES.coop_inpatient : K_RATES.coop_outpatient)
+                    : K_RATES.rasool;
+                kSubText = `<div class="text-[10px] font-en text-slate-500">(${units}K = $${(units * kUnitPrice).toLocaleString()})</div>`;
+            }
+
+            if (effectiveVal === null) {
+                return `
+                    <td class="py-3 px-3 text-center align-middle border-x border-slate-100">
+                        <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${info.status === 'لا يغطى' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-500'}">
+                            ${info.status || '—'}
+                        </span>
+                        ${info.cov ? `<div class="text-[10px] text-slate-400 font-en mt-0.5">تغطية ${info.cov}</div>` : ''}
+                    </td>
+                `;
+            }
+
+            const diffBadge = getDiffBadgeHTML(effectiveVal, stats, baselineMode, stats.prices.rasool);
+
+            return `
+                <td class="py-3 px-3 text-center align-middle border-x border-slate-100 transition-colors ${isHighest ? 'highest-cell' : ''}">
+                    <div class="flex flex-col items-center justify-center gap-0.5">
+                        ${isHighest ? `<span class="text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-slate-950 px-2 py-0.2 rounded-full font-en shadow-2xs">★ HIGHEST</span>` : ''}
+                        <div class="text-base font-extrabold font-en ${isHighest ? 'text-amber-950' : 'text-slate-900'}">
+                            ${formatUSD(effectiveVal)}
+                        </div>
+                        ${kSubText}
+                        <div class="flex items-center justify-center gap-1 flex-wrap mt-0.5">
+                            ${info.cov ? `<span class="text-[10px] font-en font-semibold text-slate-600 bg-slate-200/70 px-1.5 py-0.2 rounded">${info.cov}</span>` : ''}
+                            ${diffBadge}
+                        </div>
+                        ${info.note ? `<div class="text-[10px] text-slate-500 mt-0.5 leading-tight">${info.note}</div>` : ''}
+                    </div>
+                </td>
+            `;
+        }
+
+        // Main Table Render Function
+        function renderTable() {
+            const search = document.getElementById('search-input').value.trim().toLowerCase();
+            const catFilter = document.getElementById('category-filter').value;
+            const settingFilter = document.getElementById('setting-filter').value;
+            const matchedOnly = document.getElementById('matched-only-toggle').checked;
+            const sortBySpread = document.getElementById('highest-diff-sort').checked;
+            const baselineMode = document.getElementById('diff-baseline').value;
+
+            let filtered = servicesData.filter(row => {
+                const isSelected = state.selectedIds.has(row.id);
+                const matchesText = !search ||
+                    row.ar.toLowerCase().includes(search) ||
+                    row.en.toLowerCase().includes(search) ||
+                    row.categoryAr.toLowerCase().includes(search);
+                const matchesCat = catFilter === 'ALL' || row.category === catFilter;
+                const matchesSetting = settingFilter === 'ALL' || row.setting === settingFilter;
+                const stats = analyzeRow(row);
+                const matchesCount = !matchedOnly || stats.validCount >= 2;
+                return isSelected && matchesText && matchesCat && matchesSetting && matchesCount;
+            });
+
+            if (sortBySpread) {
+                filtered = [...filtered].sort((a, b) => analyzeRow(b).spreadPct - analyzeRow(a).spreadPct);
+            }
+
+            renderKPIs(filtered);
+
+            const tbody = document.getElementById('comparison-tbody');
+            const emptyState = document.getElementById('empty-state');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            const payerLabels = {
+                rasool: 'Rasool',
+                reaya: 'الرعاية',
+                daman: 'الضمان',
+                coop: 'التعاونية'
+            };
+
+            tbody.innerHTML = filtered.map(row => {
+                const stats = analyzeRow(row);
+                const highestNames = stats.highestPayers.map(p => payerLabels[p]).join(' & ');
+
+                const settingBadge = row.setting === 'Inpatient'
+                    ? `<span class="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">داخل المستشفى</span>`
+                    : row.setting === 'Outpatient'
+                        ? `<span class="text-[10px] font-semibold bg-teal-50 text-teal-700 border border-teal-200 px-1.5 py-0.5 rounded">خارجي</span>`
+                        : `<span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">عام</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50/90 transition-colors">
+                        <td class="py-3.5 px-4 align-middle">
+                            <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${row.categoryAr}</span>
+                                ${settingBadge}
+                                ${row.kType ? `<span class="text-[10px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-en">K-Formula</span>` : ''}
+                            </div>
+                            <div class="font-bold text-slate-900 text-sm">${row.ar}</div>
+                            <div class="text-xs text-slate-500 font-en">${row.en}</div>
+                        </td>
+
+                        ${renderPayerCell(row, 'rasool', stats, baselineMode)}
+                        ${renderPayerCell(row, 'reaya', stats, baselineMode)}
+                        ${renderPayerCell(row, 'daman', stats, baselineMode)}
+                        ${renderPayerCell(row, 'coop', stats, baselineMode)}
+
+                        <td class="py-3 px-3 text-center align-middle bg-slate-50/60">
+                            ${stats.validCount >= 2 ? `
+                                <div class="inline-flex flex-col items-center">
+                                    <span class="text-xs font-extrabold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                                        ${highestNames}
+                                    </span>
+                                    <span class="text-sm font-extrabold font-en text-rose-600 mt-1">
+                                        +${stats.spreadPct.toFixed(1)}%
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 font-en">
+                                        (${formatUSD(stats.minVal)} → ${formatUSD(stats.maxVal)})
+                                    </span>
+                                </div>
+                            ` : `
+                                <span class="text-xs text-slate-400">جهة واحدة فقط</span>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Modal Controls
+        function openAddModal() {
+            const modal = document.getElementById('add-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeAddModal() {
+            const modal = document.getElementById('add-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleAddService(e) {
+            e.preventDefault();
+            const ar = document.getElementById('new-ar').value.trim();
+            const en = document.getElementById('new-en').value.trim();
+            const cat = document.getElementById('new-cat').value;
+            const setting = document.getElementById('new-setting').value;
+
+            const parseOpt = (id) => {
+                const v = document.getElementById(id).value;
+                return v !== '' ? parseFloat(v) : null;
+            };
+
+            const catMap = {
+                'Consultations & Respiratory': 'المعاينات والجلسات والتنفس',
+                'Hospital Beds & Multipliers': 'الأسرة والغرف والمعاملات',
+                'Imaging & Scans': 'التصوير الطبي والأشعة',
+                'Endoscopy & Procedures': 'التنظير والإجراءات الطبية',
+                'Cardiology & EP': 'القلب وتخطيط كهرباء القلب',
+                'Ophthalmology & Specialty': 'طب العيون وعلاجات تخصصية',
+                'Implants & Medical Supplies': 'المستلزمات الطبية والزرعات'
+            };
+
+            const newId = 'custom-' + Date.now();
+            servicesData.unshift({
+                id: newId,
+                category: cat,
+                categoryAr: catMap[cat] || cat,
+                setting,
+                ar,
+                en,
+                rasool: { price: parseOpt('new-rasool') },
+                reaya: { price: parseOpt('new-reaya') },
+                daman: { price: parseOpt('new-daman') },
+                coop: { price: parseOpt('new-coop') }
+            });
+
+            state.selectedIds.add(newId);
+            e.target.reset();
+            closeAddModal();
+            initCategories();
+            syncServicePickerUI();
+            renderTable();
+            showToast('تمت إضافة الخدمة وتحديث المقارنة بنجاح');
+        }
+
+        // Export current comparison to CSV
+        function exportCSV() {
+            const headers = ['Category', 'Service_AR', 'Service_EN', 'Setting', 'Rasool_USD', 'Reaya_USD', 'Daman_USD', 'Coop_USD', 'Highest_Payer', 'Spread_Pct'];
+            const payerLabels = { rasool: 'Rasool', reaya: 'Reaya', daman: 'Daman', coop: 'Coop' };
+
+            const rows = servicesData.map(row => {
+                const stats = analyzeRow(row);
+                const highest = stats.highestPayers.map(p => payerLabels[p]).join(' & ') || 'N/A';
+                return [
+                    `"${row.category}"`,
+                    `"${row.ar}"`,
+                    `"${row.en}"`,
+                    row.setting,
+                    stats.prices.rasool ?? '',
+                    stats.prices.reaya ?? '',
+                    stats.prices.daman ?? '',
+                    stats.prices.coop ?? '',
+                    `"${highest}"`,
+                    stats.spreadPct.toFixed(1) + '%'
+                ].join(',');
+            });
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lebanese_tariff_comparison_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('تم تحميل ملف المقارنة بصيغة CSV');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 3000);
+        }
+
+        // Initialize application
+        window.onload = function () {
+            state.selectedIds = new Set(servicesData.map(s => s.id));
+            initCategories();
+            syncServicePickerUI();
+            updateKValues();
+        };
+    </script>
+</body>
+</html>
+```
